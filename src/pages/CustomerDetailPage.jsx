@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { customerApi } from "../api/customerApi";
 import { Loading, ErrorBanner, TagRow, SessionDots } from "../components/Common";
 import AssignPackageModal from "../components/AssignPackageModal";
 import BookAppointmentModal from "../components/BookAppointmentModal";
 import PaymentModal from "../components/PaymentModal";
+import CustomerFormModal from "../components/CustomerFormModal";
+import DeleteCustomerModal from "../components/DeleteCustomerModal";
 import {
   formatDate,
   formatDateTime,
@@ -15,13 +17,14 @@ import {
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  const [modal, setModal] = useState(null); // 'assign' | 'book' | 'payment' | null
+  const [modal, setModal] = useState(null); // 'assign' | 'book' | 'payment' | 'edit' | 'delete' | null
 
   const load = useCallback(() => {
     setLoading(true);
@@ -65,6 +68,12 @@ export default function CustomerDetailPage() {
           <div className="page-subtitle">{customer.phone}</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn-secondary" onClick={() => setModal("edit")}>
+            Sửa
+          </button>
+          <button className="btn btn-danger" onClick={() => setModal("delete")}>
+            Xóa
+          </button>
           <button className="btn btn-secondary" onClick={() => setModal("assign")}>
             Gán gói
           </button>
@@ -181,6 +190,23 @@ export default function CustomerDetailPage() {
       )}
       {modal === "payment" && (
         <PaymentModal customerId={id} onClose={() => setModal(null)} onSaved={() => { setModal(null); load(); }} />
+      )}
+      {modal === "edit" && (
+        <CustomerFormModal
+          customer={customer}
+          onClose={() => setModal(null)}
+          onSaved={() => {
+            setModal(null);
+            load();
+          }}
+        />
+      )}
+      {modal === "delete" && (
+        <DeleteCustomerModal
+          customer={customer}
+          onClose={() => setModal(null)}
+          onDeleted={() => navigate("/customers")}
+        />
       )}
     </div>
   );
