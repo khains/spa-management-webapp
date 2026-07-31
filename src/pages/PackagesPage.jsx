@@ -9,6 +9,8 @@ export default function PackagesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingPackage, setEditingPackage] = useState(null);
+  const [deletingPackage, setDeletingPackage] = useState(null);
 
   function load() {
     setLoading(true);
@@ -44,7 +46,25 @@ export default function PackagesPage() {
         <div className="grid grid-cards">
           {packages.map((pkg) => (
             <div key={pkg._id} className="card">
-              <h3 style={{ fontSize: 16, marginBottom: 6 }}>{pkg.name}</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <h3 style={{ fontSize: 16, marginBottom: 6 }}>{pkg.name}</h3>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setEditingPackage(pkg)}
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    onClick={() => setDeletingPackage(pkg)}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
               {pkg.description && (
                 <p style={{ fontSize: 13.5, color: "var(--color-ink-soft)", marginBottom: 10 }}>{pkg.description}</p>
               )}
@@ -69,10 +89,32 @@ export default function PackagesPage() {
       )}
 
       {showCreate && (
-        <CreatePackageModal
+        <PackageFormModal
           onClose={() => setShowCreate(false)}
-          onCreated={() => {
+          onSaved={() => {
             setShowCreate(false);
+            load();
+          }}
+        />
+      )}
+
+      {editingPackage && (
+        <PackageFormModal
+          pkg={editingPackage}
+          onClose={() => setEditingPackage(null)}
+          onSaved={() => {
+            setEditingPackage(null);
+            load();
+          }}
+        />
+      )}
+
+      {deletingPackage && (
+        <DeletePackageModal
+          pkg={deletingPackage}
+          onClose={() => setDeletingPackage(null)}
+          onDeleted={() => {
+            setDeletingPackage(null);
             load();
           }}
         />
@@ -81,14 +123,15 @@ export default function PackagesPage() {
   );
 }
 
-function CreatePackageModal({ onClose, onCreated }) {
+function PackageFormModal({ pkg, onClose, onSaved }) {
+  const isEdit = Boolean(pkg);
   const [form, setForm] = useState({
-    name: "",
-    description: "",
-    servicesText: "",
-    totalSessions: "",
-    durationDays: "",
-    price: "",
+    name: pkg?.name || "",
+    description: pkg?.description || "",
+    servicesText: pkg?.services?.join(", ") || "",
+    totalSessions: pkg?.totalSessions ?? "",
+    durationDays: pkg?.durationDays ?? "",
+    price: pkg?.price ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -106,7 +149,7 @@ function CreatePackageModal({ onClose, onCreated }) {
     setSaving(true);
     setError(null);
     try {
-      await servicePackageApi.create({
+      const payload = {
         name: form.name.trim(),
         description: form.description || undefined,
         services: form.servicesText
@@ -116,8 +159,13 @@ function CreatePackageModal({ onClose, onCreated }) {
         totalSessions: Number(form.totalSessions),
         durationDays: Number(form.durationDays),
         price: Number(form.price),
-      });
-      onCreated();
+      };
+      if (isEdit) {
+        await servicePackageApi.update(pkg._id, payload);
+      } else {
+        await servicePackageApi.create(payload);
+      }
+      onSaved();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -126,7 +174,7 @@ function CreatePackageModal({ onClose, onCreated }) {
   }
 
   return (
-    <Modal title="Tạo gói liệu trình mới" onClose={onClose}>
+    <Modal title={isEdit ? "Sửa gói liệu trình" : "Tạo gói liệu trình mới"} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div className="field">
           <label>Tên gói *</label>
@@ -167,10 +215,47 @@ function CreatePackageModal({ onClose, onCreated }) {
             Hủy
           </button>
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? "Đang tạo..." : "Tạo gói"}
+            {saving ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo gói"}
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function DeletePackageModal({ pkg, onClose, onDeleted }) {
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    try {
+      await servicePackageApi.remove(pkg._id);
+      onDeleted();
+    } catch (err) {
+      setError(err.message);
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <Modal title="Ngừng kinh doanh gói này?" onClose={onClose}>
+      <p style={{ fontSize: 14, color: "var(--color-ink-soft)", marginBottom: 4 }}>
+        Gói <strong>{pkg.name}</strong> sẽ không còn hiển thị trong danh mục và không thể gán mới cho khách hàng.
+        Các khách hàng đã mua gói này trước đó sẽ không bị ảnh hưởng.
+      </p>
+
+      {error && <ErrorBanner message={error} />}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          Hủy
+        </button>
+        <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+          {deleting ? "Đang xóa..." : "Xóa gói"}
+        </button>
+      </div>
     </Modal>
   );
 }
