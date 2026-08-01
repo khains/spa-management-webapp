@@ -173,7 +173,7 @@ export default function CustomerDetailPage() {
                     <tr key={a._id}>
                       <td>{formatDateTime(a.startTime)}</td>
                       <td>{displayNameOf(a.technician)}</td>
-                      <td>{a.serviceName || "--"}</td>
+                      <td>{a.serviceName || a.customerPackage?.packageNameSnapshot || "--"}</td>
                       <td>{appointmentStatusLabel(a.status)}</td>
                     </tr>
                   ))}

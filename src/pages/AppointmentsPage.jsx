@@ -4,6 +4,7 @@ import { Loading, ErrorBanner, EmptyState } from "../components/Common";
 import { IconPlus, IconQr } from "../components/Icons";
 import BookAppointmentModal from "../components/BookAppointmentModal";
 import CheckInModal from "../components/CheckInModal";
+import EditAppointmentModal from "../components/EditAppointmentModal";
 import { displayNameOf, formatDateTime, appointmentStatusLabel, todayIso } from "../utils/format";
 
 function addDays(iso, days) {
@@ -19,6 +20,7 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(null); // 'book' | 'checkin' | null
+  const [editingAppointment, setEditingAppointment] = useState(null);
   const [actionError, setActionError] = useState(null);
 
   function load() {
@@ -52,6 +54,17 @@ export default function AppointmentsPage() {
     setActionError(null);
     try {
       await appointmentApi.cancel(appointment._id);
+      load();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  }
+
+  async function handleDelete(appointment) {
+    if (!window.confirm("Xóa hẳn lịch hẹn đã hủy này? Hành động này không thể hoàn tác.")) return;
+    setActionError(null);
+    try {
+      await appointmentApi.remove(appointment._id);
       load();
     } catch (err) {
       setActionError(err.message);
@@ -111,7 +124,9 @@ export default function AppointmentsPage() {
               </div>
               <div style={{ fontSize: 13.5, marginTop: 8 }}>Khách: {displayNameOf(a.customer)}</div>
               {a.technician && <div style={{ fontSize: 13.5 }}>Kỹ thuật viên: {displayNameOf(a.technician)}</div>}
-              {a.serviceName && <div style={{ fontSize: 13.5 }}>Dịch vụ: {a.serviceName}</div>}
+              {(a.serviceName || a.customerPackage?.packageNameSnapshot) && (
+                <div style={{ fontSize: 13.5 }}>Dịch vụ: {a.serviceName || a.customerPackage?.packageNameSnapshot}</div>
+              )}
               {a.room && <div style={{ fontSize: 13.5 }}>Phòng: {a.room}</div>}
 
               {a.status === "booked" && (
@@ -120,13 +135,33 @@ export default function AppointmentsPage() {
                 </button>
               )}
 
+              {a.status === "booked" && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ marginTop: 10, marginLeft: 8 }}
+                  onClick={() => setEditingAppointment(a)}
+                >
+                  Sửa
+                </button>
+              )}
+
               {(a.status === "booked" || a.status === "checked_in") && (
                 <button
                   className="btn btn-danger btn-sm"
-                  style={{ marginTop: 10, marginLeft: a.status === "booked" ? 8 : 0 }}
+                  style={{ marginTop: 10, marginLeft: 8 }}
                   onClick={() => handleCancel(a)}
                 >
                   Hủy lịch hẹn
+                </button>
+              )}
+
+              {a.status === "cancelled" && (
+                <button
+                  className="btn btn-danger btn-sm"
+                  style={{ marginTop: 10 }}
+                  onClick={() => handleDelete(a)}
+                >
+                  Xóa lịch hẹn
                 </button>
               )}
             </div>
@@ -138,6 +173,16 @@ export default function AppointmentsPage() {
         <BookAppointmentModal onClose={() => setModal(null)} onBooked={() => { setModal(null); load(); }} />
       )}
       {modal === "checkin" && <CheckInModal onClose={() => setModal(null)} onCheckedIn={load} />}
+      {editingAppointment && (
+        <EditAppointmentModal
+          appointment={editingAppointment}
+          onClose={() => setEditingAppointment(null)}
+          onSaved={() => {
+            setEditingAppointment(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -23,4 +23,6 @@ export const appointmentApi = {
     apiClient.post(`/api/appointments/${id}/complete`, { resultNote }).then((r) => r.data),
 
   cancel: (id) => apiClient.post(`/api/appointments/${id}/cancel`).then((r) => r.data),
+
+  remove: (id) => apiClient.delete(`/api/appointments/${id}`).then((r) => r.data),
 };
