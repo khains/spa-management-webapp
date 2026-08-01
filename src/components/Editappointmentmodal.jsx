@@ -15,7 +15,7 @@ function splitStartTime(iso) {
   return { date, time };
 }
 
-// Chi dung de sua lich hen con o trang thai "booked" (chua check-in)
+// Chi dung de sua lich hen con o trang thai "booked" (chua check-in) /
 export default function EditAppointmentModal({ appointment, onClose, onSaved }) {
   const [technicians, setTechnicians] = useState([]);
   const [customerPackages, setCustomerPackages] = useState([]);
