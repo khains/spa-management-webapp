@@ -21,4 +21,6 @@ export const customerPackageApi = {
 
   update: (id, payload) =>
     apiClient.put(`/api/customer-packages/${id}`, payload).then((r) => r.data),
+
+  remove: (id) => apiClient.delete(`/api/customer-packages/${id}`).then((r) => r.data),
 };

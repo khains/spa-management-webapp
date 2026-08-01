@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { customerApi } from "../api/customerApi";
-import { Loading, ErrorBanner, TagRow, SessionDots } from "../components/Common";
+import { customerPackageApi } from "../api/packageApi";
+import { Loading, ErrorBanner, TagRow, SessionDots, Modal } from "../components/Common";
 import AssignPackageModal from "../components/AssignPackageModal";
 import BookAppointmentModal from "../components/BookAppointmentModal";
 import PaymentModal from "../components/PaymentModal";
@@ -23,6 +24,7 @@ export default function CustomerDetailPage() {
   const [error, setError] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [deletingPackage, setDeletingPackage] = useState(null);
 
   const [modal, setModal] = useState(null); // 'assign' | 'book' | 'payment' | 'edit' | 'delete' | null
 
@@ -140,9 +142,16 @@ export default function CustomerDetailPage() {
           )}
           {customer.packages.map((pkg) => (
             <div key={pkg._id} className="card" style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <strong>{pkg.packageNameSnapshot}</strong>
-                <span style={{ fontSize: 12.5, color: "var(--color-ink-soft)" }}>{packageStatusLabel(pkg.status)}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 12.5, color: "var(--color-ink-soft)" }}>{packageStatusLabel(pkg.status)}</span>
+                  {pkg.sessionsUsed === 0 && (
+                    <button className="btn btn-danger btn-sm" onClick={() => setDeletingPackage(pkg)}>
+                      Xóa
+                    </button>
+                  )}
+                </div>
               </div>
               <SessionDots used={pkg.sessionsUsed} total={pkg.sessionsTotal} />
               <div style={{ fontSize: 13, color: "var(--color-ink-soft)" }}>
@@ -210,7 +219,54 @@ export default function CustomerDetailPage() {
           onDeleted={() => navigate("/customers")}
         />
       )}
+      {deletingPackage && (
+        <DeleteCustomerPackageModal
+          pkg={deletingPackage}
+          onClose={() => setDeletingPackage(null)}
+          onDeleted={() => {
+            setDeletingPackage(null);
+            load();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function DeleteCustomerPackageModal({ pkg, onClose, onDeleted }) {
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    try {
+      await customerPackageApi.remove(pkg._id);
+      onDeleted();
+    } catch (err) {
+      setError(err.message);
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <Modal title="Xóa gói liệu trình này?" onClose={onClose}>
+      <p style={{ fontSize: 14, color: "var(--color-ink-soft)", marginBottom: 4 }}>
+        Gói <strong>{pkg.packageNameSnapshot}</strong> chưa được sử dụng buổi nào nên có thể xóa hẳn khỏi hồ sơ khách
+        hàng. Hành động này không thể hoàn tác.
+      </p>
+
+      {error && <ErrorBanner message={error} />}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          Hủy
+        </button>
+        <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+          {deleting ? "Đang xóa..." : "Xóa gói"}
+        </button>
+      </div>
+    </Modal>
   );
 }
 
