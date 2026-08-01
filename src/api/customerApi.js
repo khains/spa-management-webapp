@@ -14,4 +14,10 @@ export const customerApi = {
 
   addNote: (id, content) =>
     apiClient.post(`/api/customers/${id}/notes`, { content }).then((r) => r.data),
+
+  updateNote: (id, noteId, content) =>
+    apiClient.put(`/api/customers/${id}/notes/${noteId}`, { content }).then((r) => r.data),
+
+  removeNote: (id, noteId) =>
+    apiClient.delete(`/api/customers/${id}/notes/${noteId}`).then((r) => r.data),
 };

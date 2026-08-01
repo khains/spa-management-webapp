@@ -24,6 +24,9 @@ export default function CustomerDetailPage() {
   const [error, setError] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+  const [savingNoteEdit, setSavingNoteEdit] = useState(false);
   const [deletingPackage, setDeletingPackage] = useState(null);
 
   const [modal, setModal] = useState(null); // 'assign' | 'book' | 'payment' | 'edit' | 'delete' | null
@@ -51,6 +54,40 @@ export default function CustomerDetailPage() {
       setError(err.message);
     } finally {
       setSavingNote(false);
+    }
+  }
+
+  function startEditNote(note) {
+    setEditingNoteId(note._id);
+    setEditingNoteText(note.content);
+  }
+
+  function cancelEditNote() {
+    setEditingNoteId(null);
+    setEditingNoteText("");
+  }
+
+  async function handleSaveNoteEdit(noteId) {
+    if (!editingNoteText.trim()) return;
+    setSavingNoteEdit(true);
+    try {
+      await customerApi.updateNote(id, noteId, editingNoteText.trim());
+      cancelEditNote();
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingNoteEdit(false);
+    }
+  }
+
+  async function handleDeleteNote(noteId) {
+    if (!window.confirm("Xóa ghi chú này?")) return;
+    try {
+      await customerApi.removeNote(id, noteId);
+      load();
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -110,10 +147,44 @@ export default function CustomerDetailPage() {
               .reverse()
               .map((note) => (
                 <div key={note._id} style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 14 }}>{note.content}</div>
-                  <div style={{ fontSize: 12, color: "var(--color-ink-soft)", marginTop: 2 }}>
-                    {note.staff?.fullName || ""} • {formatDateTime(note.date)}
-                  </div>
+                  {editingNoteId === note._id ? (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        className="input"
+                        value={editingNoteText}
+                        onChange={(e) => setEditingNoteText(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSaveNoteEdit(note._id)}
+                        autoFocus
+                      />
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => handleSaveNoteEdit(note._id)}
+                        disabled={savingNoteEdit}
+                      >
+                        Lưu
+                      </button>
+                      <button className="btn btn-secondary" onClick={cancelEditNote}>
+                        Hủy
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 14 }}>{note.content}</div>
+                        <div style={{ fontSize: 12, color: "var(--color-ink-soft)", marginTop: 2 }}>
+                          {note.staff?.fullName || ""} • {formatDateTime(note.date)}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => startEditNote(note)}>
+                          Sửa
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteNote(note._id)}>
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
