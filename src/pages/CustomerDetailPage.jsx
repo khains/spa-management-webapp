@@ -164,6 +164,7 @@ export default function CustomerDetailPage() {
                   <tr>
                     <th>Thời gian</th>
                     <th>Kỹ thuật viên</th>
+                    <th>Dịch vụ</th>
                     <th>Trạng thái</th>
                   </tr>
                 </thead>
@@ -172,6 +173,7 @@ export default function CustomerDetailPage() {
                     <tr key={a._id}>
                       <td>{formatDateTime(a.startTime)}</td>
                       <td>{displayNameOf(a.technician)}</td>
+                      <td>{a.serviceName || "--"}</td>
                       <td>{appointmentStatusLabel(a.status)}</td>
                     </tr>
                   ))}

@@ -43,6 +43,21 @@ export default function AppointmentsPage() {
     }
   }
 
+  async function handleCancel(appointment) {
+    const isCheckedIn = appointment.status === "checked_in";
+    const confirmMsg = isCheckedIn
+      ? "Hủy lịch hẹn đã check-in này? Buổi đã trừ trong gói liệu trình sẽ được hoàn lại."
+      : "Hủy lịch hẹn này?";
+    if (!window.confirm(confirmMsg)) return;
+    setActionError(null);
+    try {
+      await appointmentApi.cancel(appointment._id);
+      load();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -102,6 +117,16 @@ export default function AppointmentsPage() {
               {a.status === "booked" && (
                 <button className="btn btn-primary btn-sm" style={{ marginTop: 10 }} onClick={() => handleCheckInById(a._id)}>
                   Check-in (trừ 1 buổi)
+                </button>
+              )}
+
+              {(a.status === "booked" || a.status === "checked_in") && (
+                <button
+                  className="btn btn-danger btn-sm"
+                  style={{ marginTop: 10, marginLeft: a.status === "booked" ? 8 : 0 }}
+                  onClick={() => handleCancel(a)}
+                >
+                  Hủy lịch hẹn
                 </button>
               )}
             </div>
